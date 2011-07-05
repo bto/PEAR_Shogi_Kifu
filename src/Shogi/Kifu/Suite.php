@@ -42,6 +42,29 @@ class Shogi_Kifu_Suite
       'OU' => 2);
   }
 
+  public function standDeplay($piece, $black, $number = 1)
+  {
+    $player = $black ? 'black' : 'white';
+    $stand  =& $this->stand[$player];
+
+    if ($piece == 'AL') {
+      foreach ($this->pieces as $piece => $amount) {
+        if ($piece === 'OU') {
+          continue;
+        }
+        $stand[$piece] += $this->pieces[$piece];
+        $this->pieces[$piece] = 0;
+      }
+    } else if (isset($this->pieces[$piece])) {
+      $this->standSet($piece, $black, $number);
+      $this->pieces[$piece] -= $number;
+    } else {
+      return false;
+    }
+
+    return $this;
+  }
+
   public function standEmpty()
   {
     return array(
@@ -53,6 +76,13 @@ class Shogi_Kifu_Suite
       'KA' => 0,
       'HI' => 0,
       'OU' => 0);
+  }
+
+  public function standSet($piece, $black)
+  {
+    $player = $black ? 'black' : 'white';
+    $this->stand[$player][$piece]++;
+    return $this;
   }
 }
 
