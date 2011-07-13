@@ -79,6 +79,86 @@ class Shogi_Kifu
     }
   }
 
+  public function hasNext()
+  {
+    $move = $this->moves->get($this->step+1);
+    return ($move && $move['type'] === 'move');
+  }
+
+  public function hasPrev()
+  {
+    if ($this->step < 1) {
+      return false;
+    }
+    $move = $this->moves->get($this->step-1);
+    return ($move && $move['type'] === 'move');
+  }
+
+  public function moveCurrent()
+  {
+    $move = $this->moves->get($this->step);
+    if ($move && $move['type'] === 'move') {
+      return $move;
+    } else {
+      return null;
+    }
+  }
+
+  public function moveFirst()
+  {
+    $this->is_black = $this->info['player_start'] === 'black';
+    $this->step     = 0;
+    $this->suite    = clone $this->suite_init;
+    return $this;
+  }
+
+  public function moveLast()
+  {
+    do {
+      $step = $this->step;
+      $this->moveNext();
+    } while($step !== $this->step);
+  }
+
+  public function moveNext()
+  {
+    $move = $this->moves->get($this->step+1);
+    if ($move && $move['type'] === 'move') {
+      $this->suite->move($move);
+      $this->is_black = !$move['is_black'];
+      $this->step++;
+    }
+    return $move;
+  }
+
+  public function movePrev()
+  {
+    $move = $this->moves->get($this->step);
+    if ($move && $move['type'] === 'move') {
+      $this->suite->moveReverse($move);
+      $this->is_black = $move['is_black'];
+      $this->step--;
+    }
+    return $move;
+  }
+
+  public function moveStrings()
+  {
+    $result = array();
+    foreach ($this->moves->records as $move) {
+      $result[] = $move['str'];
+    }
+    return $result;
+  }
+
+  public function moveTo($step)
+  {
+    $this->moveFirst();
+    while ($step !== $this->step) {
+      $this->moveNext();
+    }
+  }
+
   public function parse($format)
   {
     if ($format) {
@@ -93,11 +173,7 @@ class Shogi_Kifu
     $this->parser->parse();
     $this->prepare();
 
-    $this->black = $this->info['player_start'] === 'black';
-    $this->step  = 0;
-    $this->suite = clone $this->suite_init;
-
-    return $this;
+    return $this->moveFirst();
   }
 
   public function prepare()
@@ -114,14 +190,17 @@ class Shogi_Kifu
       if ($move['type'] !== 'move') {
         continue;
       }
-      print_r($move);
 
       $move_prev =  $move_records[$i-1];
       $from      =& $move['from'];
       $to        =& $move['to'];
 
       if (!isset($move['is_black'])) {
-        $move['is_black'] = !$move_prev['is_black'];
+        if ($move_prev['type'] === 'init') {
+          $move['is_black'] = $info['player_start'] === 'black';
+        } else {
+          $move['is_black'] = !$move_prev['is_black'];
+        }
       }
 
       if (!isset($from['piece'])) {
@@ -161,7 +240,6 @@ class Shogi_Kifu
       }
 
       $suite->move($move);
-      print_r($move);
     }
   }
 
