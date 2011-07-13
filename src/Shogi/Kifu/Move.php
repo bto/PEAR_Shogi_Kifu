@@ -50,6 +50,21 @@ class Shogi_Kifu_Move
     return $this;
   }
 
+  public function get($step)
+  {
+    return $this->records[$step];
+  }
+
+  public function getLastMoveNum()
+  {
+    for ($i = count($this->records)-1; 0 < $i; $i--) {
+      if ($this->records[$i]['type'] === 'move') {
+        return $i;
+      }
+    }
+    return 0;
+  }
+
   public function &newMove()
   {
     $move =& $this->records[count($this->records)-1];
