@@ -61,6 +61,11 @@ class Shogi_Kifu_Suite
     return $this;
   }
 
+  public function cellGet($x, $y)
+  {
+    return $this->board[$x][$y];
+  }
+
   public function cellRemove($x, $y, $piece = null)
   {
     $cell = $this->board[$x][$y];
@@ -132,6 +137,51 @@ class Shogi_Kifu_Suite
     return $this;
   }
 
+  public function move($move)
+  {
+    $is_black = $move['is_black'];
+    $from     = $move['from'];
+    $stand    = $move['stand'];
+    $to       = $move['to'];
+
+    if ($from['x']) {
+      $this->cellTrash($from['x'], $from['y']);
+    } else {
+      $this->standTrash($from['piece'], $is_black);
+    }
+
+    $this->cellSet($to['x'], $to['y'], $to['piece'], $is_black);
+
+    if ($stand) {
+      $this->standSet($stand['stand'], $is_black);
+    }
+
+    return $this;
+  }
+
+  public function moveReverse($move)
+  {
+    $is_black = $move['is_black'];
+    $from     = $move['from'];
+    $stand    = $move['stand'];
+    $to       = $move['to'];
+
+    if ($stand) {
+      $this->standTrash($stand['stand'], $is_black);
+      $this->cellSet($to['x'], $to['y'], $stand['piece'], $is_black);
+    } else {
+      $this->cellTrash($to['x'], $to['y']);
+    }
+
+    if ($from['x']) {
+      $this->cellSet($from['x'], $from['y'], $from['piece'], $is_black);
+    } else {
+      $this->standSet($from['piece'], $is_black);
+    }
+
+    return $this;
+  }
+
   public function piecesDefault()
   {
     return array(
@@ -181,10 +231,29 @@ class Shogi_Kifu_Suite
       'OU' => 0);
   }
 
+  public function standRemove($piece, $is_black) {
+    if (!$this->standTrash($piece, $is_black)) {
+      return false;
+    }
+    $this->pieces[$piece]++;
+    return $this;
+  }
+
   public function standSet($piece, $is_black)
   {
     $player = $is_black ? 'black' : 'white';
     $this->stand[$player][$piece]++;
+    return $this;
+  }
+
+  public function standTrash($piece, $is_black)
+  {
+    $player =  $is_black ? 'black' : 'white';
+    $stand  =& $this->stand[$player];
+    if (!$stand[$piece]) {
+      return false;
+    }
+    $stand[$piece]--;
     return $this;
   }
 
