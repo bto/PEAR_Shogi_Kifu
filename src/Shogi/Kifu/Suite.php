@@ -61,9 +61,39 @@ class Shogi_Kifu_Suite
     return $this;
   }
 
+  public function cellRemove($x, $y, $piece = null)
+  {
+    $cell = $this->board[$x][$y];
+    if (!$cell) {
+      return false;
+    }
+    if (!$this->cellTrash($x, $y, $piece)) {
+      return false;
+    }
+    $this->pieces[$this->piece_map[$cell['piece']]]++;
+    return $this;
+  }
+
   public function cellSet($x, $y, $piece, $is_black)
   {
     $this->board[$x][$y] = array('is_black' => $is_black, 'piece' => $piece);
+    return $this;
+  }
+
+  public function cellTrash($x, $y, $piece = null)
+  {
+    $cell = $this->board[$x][$y];
+    if (!$cell) {
+      return false;
+    }
+    if (!$piece) {
+      $piece = $cell['piece'];
+    }
+    if ($piece !== $cell['piece']) {
+      return false;
+    }
+
+    $this->board[$x][$y] = null;
     return $this;
   }
 
@@ -115,7 +145,7 @@ class Shogi_Kifu_Suite
       'OU' => 2);
   }
 
-  public function standDeplay($piece, $is_black, $number = 1)
+  public function standDeploy($piece, $is_black, $number = 1)
   {
     $player = $is_black ? 'black' : 'white';
     $stand  =& $this->stand[$player];

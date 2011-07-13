@@ -23,9 +23,26 @@ class Shogi_Kifu_Move
     return $this;
   }
 
+  public function addMove($from, $to, $piece, $options = array()) {
+    $move =& $this->newMove();
+    $move['from'] = array('x' => $from[0], 'y' => $from[1]);
+    $move['to']   = array('piece' => $piece, 'x' => $to[0], 'y' => $to[1]);
+    $move['type'] = 'move';
+    foreach ($options as $key => $value) {
+      $move[$key] = $value;
+    }
+    return $this;
+  }
+
+  public function addPeriod($period)
+  {
+    $this->records[count($this->records)-1]['period'] = $period;
+    return $this;
+  }
+
   public function addSpecial($type, $options = array())
   {
-    $move = $this->newMove();
+    $move =& $this->newMove();
     $move['type'] = $type;
     foreach ($options as $key => $value) {
       $move[$key] = $value;
@@ -36,7 +53,7 @@ class Shogi_Kifu_Move
   public function &newMove()
   {
     $move =& $this->records[count($this->records)-1];
-    if (!isset($move['type'])) {
+    if (isset($move['type'])) {
       $this->records[] = array();
       $move =& $this->records[count($this->records)-1];
     }

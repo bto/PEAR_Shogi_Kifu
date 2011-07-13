@@ -356,7 +356,7 @@ class Shogi_Kifu_Kif
         continue;
       }
 
-      $suite_init->standDeplay($piece, $is_black, $num);
+      $suite_init->standDeploy($piece, $is_black, $num);
     }
 
     return true;
