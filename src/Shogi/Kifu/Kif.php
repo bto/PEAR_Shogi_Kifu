@@ -99,19 +99,17 @@ class Shogi_Kifu_Kif
     $this->kifu = $kifu;
   }
 
-  public function initializeSuite()
-  {
-    $this->_board_setup = true;
-  }
-
   public function parse()
   {
-    $this->_henka = null;
+    $this->_board_setup = false;
+    $this->_henka       = false;
 
     $lines = $this->toLines($this->kifu->info['source']);
     foreach ($lines as $line) {
       $this->parseByLine($line);
     }
+
+    $this->prepare();
 
     return $this;
   }
@@ -119,10 +117,6 @@ class Shogi_Kifu_Kif
   public function parseByLine($line)
   {
     if ($result = $this->parseByLineAsComment($line)) {
-      return $result;
-    }
-
-    if ($result = $this->parseByLineAsMove($line)) {
       return $result;
     }
 
@@ -134,7 +128,41 @@ class Shogi_Kifu_Kif
       return $result;
     }
 
+    if ($result = $this->parseByLineAsBoard($line)) {
+      return $result;
+    }
+
+    if ($result = $this->parseByLineAsMove($line)) {
+      return $result;
+    }
+
     return false;
+  }
+
+  public function parseByLineAsBoard($line) {
+    if (!preg_match('/^\|.+\|/', $line, $matches)) {
+      return false;
+    }
+
+    $this->_board_setup = true;
+
+    $line = $this->strip($line);
+    $y    = $this->parseKansuuchi(mb_substr($line, -1));
+
+    $suite_init =& $this->kifu->suite_init;
+    for ($i = 0; $i < 9; $i++) {
+      $piece = mb_substr($line, $i*2+2, 1);
+      if (!isset($this->board_piece_map[$piece])) {
+        continue;
+      }
+
+      $piece    = $this->board_piece_map[$piece];
+      $is_black = !(mb_substr($line, $i*2+1, 1) === 'v');
+      $x        = 9 - $i;
+      $suite_init->cellDeploy($x, $y, $piece, $is_black);
+    }
+
+    return true;
   }
 
   public function parseByLineAsComment($line)
@@ -282,11 +310,15 @@ class Shogi_Kifu_Kif
     case '投了':
       $moves->addSpecial('TORYO');
       return true;
+
     case '千日手':
       $moves->addSpecial('SENNICHITE');
       return true;
+
     case '持将棋':
       $moves->addSpecial('JISHOGI');
+      return true;
+
     case '詰み':
       $moves->addSpecial('TSUMI');
       return true;
@@ -310,12 +342,13 @@ class Shogi_Kifu_Kif
     return false;
   }
 
-  function parseStand($str, $black)
+  public function parseStand($str, $is_black)
   {
     if ($str === 'なし') {
       return true;
     }
 
+    $suite_init =& $this->kifu->suite_init;
     foreach (mb_split('　*', $str) as $value) {
       $piece = $this->board_piece_map[mb_substr($value, 0, 1)];
       $num   = $this->parseKansuuchi(mb_substr($value, 1));
@@ -323,17 +356,19 @@ class Shogi_Kifu_Kif
         continue;
       }
 
-      $this->kifu->suite_init->standDeplay($piece, $black, $num);
+      $suite_init->standDeplay($piece, $is_black, $num);
     }
 
     return true;
   }
 
-  function parseKansuuchi($str)
+  public function parseKansuuchi($str)
   {
     $num = 0;
     for ($i = 0; $s = mb_substr($str, $i, 1); $i++) {
-      $num += $this->kanji_number_map[$s];
+      if (isset($this->kanji_number_map[$s])) {
+        $num += $this->kanji_number_map[$s];
+      }
     }
 
     if (!$num) {
@@ -341,6 +376,23 @@ class Shogi_Kifu_Kif
     }
 
     return $num;
+  }
+
+  public function prepare() {
+    $kifu =& $this->kifu;
+    $info =& $kifu->info;
+
+    if (isset($info['handicap'])) {
+      if ($this->_board_setup) {
+        unset($info['handicap']);
+      } else {
+        $handicap = $info['handicap'];
+        $kifu->suite_init->setup($handicap);
+        if ($handicap !== 'Even') {
+          $info['player_start'] = 'white';
+        }
+      }
+    }
   }
 
   public function strip($str)

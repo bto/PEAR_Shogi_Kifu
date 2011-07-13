@@ -8,6 +8,22 @@
 
 class Shogi_Kifu_Suite
 {
+  protected $piece_map = array(
+    'FU' => 'FU',
+    'KY' => 'KY',
+    'KE' => 'KE',
+    'GI' => 'GI',
+    'KI' => 'KI',
+    'KA' => 'KA',
+    'HI' => 'HI',
+    'OU' => 'OU',
+    'TO' => 'FU',
+    'NY' => 'KY',
+    'NK' => 'KE',
+    'NG' => 'GI',
+    'UM' => 'KA',
+    'RY' => 'HI');
+
   public function __construct()
   {
     $this->board  = $this->boardEmpty();
@@ -29,6 +45,63 @@ class Shogi_Kifu_Suite
     return $borad;
   }
 
+  public function cellDeploy($x, $y, $piece, $is_black)
+  {
+    if ($this->board[$x][$y]) {
+      return false;
+    }
+
+    $piece_org = $this->piece_map[$piece];
+    if (!$this->pieces[$piece_org]) {
+      return false;
+    }
+
+    $this->cellSet($x, $y, $piece, $is_black);
+    $this->pieces[$piece_org]--;
+    return $this;
+  }
+
+  public function cellSet($x, $y, $piece, $is_black)
+  {
+    $this->board[$x][$y] = array('is_black' => $is_black, 'piece' => $piece);
+    return $this;
+  }
+
+  public function hirate()
+  {
+    $this->cellDeploy(1, 9, 'KY', true);
+    $this->cellDeploy(2, 9, 'KE', true);
+    $this->cellDeploy(3, 9, 'GI', true);
+    $this->cellDeploy(4, 9, 'KI', true);
+    $this->cellDeploy(5, 9, 'OU', true);
+    $this->cellDeploy(6, 9, 'KI', true);
+    $this->cellDeploy(7, 9, 'GI', true);
+    $this->cellDeploy(8, 9, 'KE', true);
+    $this->cellDeploy(9, 9, 'KY', true);
+    $this->cellDeploy(8, 8, 'KA', true);
+    $this->cellDeploy(2, 8, 'HI', true);
+    for ($i = 1; $i <= 9; $i++) {
+      $this->cellDeploy($i, 7, 'FU', true);
+    }
+
+    $this->cellDeploy(1, 1, 'KY', false);
+    $this->cellDeploy(2, 1, 'KE', false);
+    $this->cellDeploy(3, 1, 'GI', false);
+    $this->cellDeploy(4, 1, 'KI', false);
+    $this->cellDeploy(5, 1, 'OU', false);
+    $this->cellDeploy(6, 1, 'KI', false);
+    $this->cellDeploy(7, 1, 'GI', false);
+    $this->cellDeploy(8, 1, 'KE', false);
+    $this->cellDeploy(9, 1, 'KY', false);
+    $this->cellDeploy(2, 2, 'KA', false);
+    $this->cellDeploy(8, 2, 'HI', false);
+    for ($i = 1; $i <= 9; $i++) {
+      $this->cellDeploy($i, 3, 'FU', false);
+    }
+
+    return $this;
+  }
+
   public function piecesDefault()
   {
     return array(
@@ -42,9 +115,9 @@ class Shogi_Kifu_Suite
       'OU' => 2);
   }
 
-  public function standDeplay($piece, $black, $number = 1)
+  public function standDeplay($piece, $is_black, $number = 1)
   {
-    $player = $black ? 'black' : 'white';
+    $player = $is_black ? 'black' : 'white';
     $stand  =& $this->stand[$player];
 
     if ($piece == 'AL') {
@@ -56,7 +129,7 @@ class Shogi_Kifu_Suite
         $this->pieces[$piece] = 0;
       }
     } else if (isset($this->pieces[$piece])) {
-      $this->standSet($piece, $black, $number);
+      $this->standSet($piece, $is_black, $number);
       $this->pieces[$piece] -= $number;
     } else {
       return false;
@@ -78,10 +151,56 @@ class Shogi_Kifu_Suite
       'OU' => 0);
   }
 
-  public function standSet($piece, $black)
+  public function standSet($piece, $is_black)
   {
-    $player = $black ? 'black' : 'white';
+    $player = $is_black ? 'black' : 'white';
     $this->stand[$player][$piece]++;
+    return $this;
+  }
+
+  public function setup($handicap)
+  {
+    if ($handicap === 'Other') {
+      return $this;
+    }
+
+    $this->hirate();
+
+    if ($handicap === 'Even' || !$handicap) {
+      return $this;
+    }
+
+    switch ($handicap) {
+    case 'Lance':
+      $this->cellRemove(1, 1, 'KY');
+      break;
+
+    case 'Right_Lance':
+      $this->cellRemove(9, 1, 'KY');
+      break;
+
+    case 'Bishop':
+      $this->cellRemove(2, 2, 'KA');
+      break;
+
+    case 'Rook_and_Lance':
+      $this->cellRemove(1, 1, 'KY');
+    case 'Rook':
+      $this->cellRemove(8, 2, 'HI');
+      break;
+
+    case 'Six_Drops':
+      $this->cellRemove(2, 1, 'KE');
+      $this->cellRemove(8, 1, 'KE');
+    case 'Four_Drops':
+      $this->cellRemove(1, 1, 'KY');
+      $this->cellRemove(9, 1, 'KY');
+    case 'Two_Drops':
+      $this->cellRemove(8, 2, 'HI');
+      $this->cellRemove(2, 2, 'KA');
+      break;
+    }
+
     return $this;
   }
 }

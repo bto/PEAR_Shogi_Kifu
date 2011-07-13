@@ -13,8 +13,8 @@ class Shogi_Kifu
   public function __construct($source = null, $format = null)
   {
     $this->suite_init = new Shogi_Kifu_Suite();
-    $this->info       = array('player_start' => 'black');
-    $this->move       = new Shogi_Kifu_Move();
+    $this->info       = array();
+    $this->moves      = new Shogi_Kifu_Move();
 
     if ($source) {
       $this->source($source);
@@ -31,7 +31,10 @@ class Shogi_Kifu
       $this->info['format'] = $format;
     }
 
-    $class = 'Shogi_Kifu_'.ucfirst($this->info['format']);
+    $class = ucfirst($this->info['format']);
+    require_once(dirname(__FILE__).'/Kifu/'.$class.'.php');
+    $class = 'Shogi_Kifu_'.$class;
+
     $this->parser = new $class($this);
     $this->parser->parse();
     $this->prepare();
@@ -41,6 +44,24 @@ class Shogi_Kifu
     $this->suite = clone $this->suite_init;
 
     return $this;
+  }
+
+  public function prepare()
+  {
+    $info       =& $this->info;
+    $moves      =& $this->moves;
+    $suite_init =& $this->suite_init;
+
+    if (!isset($info['player_start'])) {
+      if (isset($info['handicap']) && $info['handicap'] !== 'Even') {
+        $info['player_start'] = 'white';
+      } else {
+        $info['player_start'] = 'black';
+      }
+    }
+
+    foreach ($this->moves->records as $i => &$move) {
+    }
   }
 
   public function source($source = null)
